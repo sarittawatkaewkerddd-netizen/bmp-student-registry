@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMP Student Registry Viewer</title>
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --bg: #f5f6fa; --card: #fff; --text: #2c3e50; --muted: #666;
+            --primary: #3498db; --primary-hover: #2980b9; --border: #eee;
+            --header-from: #2c3e50; --header-to: #3498db;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --male: #3498db; --female: #e91e63; --male-bg: #e3f2fd; --female-bg: #fce4ec;
+        }
+        [data-theme="dark"] {
+            --bg: #1a1a2e; --card: #16213e; --text: #eaeaea; --muted: #aaa;
+            --primary: #4da6ff; --primary-hover: #6db3ff; --border: #2a2a4a;
+            --header-from: #0f0f23; --header-to: #1a1a3e;
+            --shadow: 0 2px 10px rgba(0,0,0,0.4);
+            --male: #6db3ff; --female: #ff6b9d; --male-bg: #1a3a5c; --female-bg: #4a1a30;
+        }
+        body { font-family: 'Tahoma', 'Sarabun', sans-serif; margin: 0; padding: 20px; background: var(--bg); color: var(--text); transition: background 0.3s, color 0.3s; }
+        .container { max-width: 1600px; margin: 0 auto; background: var(--card); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+        header { background: linear-gradient(135deg, var(--header-from), var(--header-to)); color: white; padding: 20px; position: relative; }
+        header h1 { margin: 0; font-size: 1.8rem; display: flex; align-items: center; gap: 10px; }
+        header p { margin: 5px 0 0; opacity: 0.9; font-size: 0.95rem; }
+        .theme-toggle { position: absolute; top: 15px; right: 20px; background: rgba(255,255,255,0.15); border: none; color: white; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+        .theme-toggle:hover { background: rgba(255,255,255,0.25); }
+        .toolbar { display: flex; gap: 10px; padding: 15px 20px; background: var(--bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
+        .search-box { flex: 1; min-width: 280px; position: relative; }
+        .search-box input { width: 100%; padding: 12px 15px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--card); color: var(--text); }
+        .search-box input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(52,152,219,0.2); }
+        .search-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+        .stats { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+        .stat { background: var(--card); padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+        .stat strong { color: var(--text); }
+        .stat.male { border-color: var(--male); color: var(--male); } .stat.female { border-color: var(--female); color: var(--female); }
+        .stat.grade { border-color: var(--primary); color: var(--primary); }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s; font-weight: 500; }
+        .btn-primary { background: var(--primary); color: white; } .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary { background: var(--border); color: var(--text); } .btn-secondary:hover { background: #ddd; }
+        .btn-success { background: #27ae60; color: white; } .btn-success:hover { background: #219a52; }
+        .btn-danger { background: #e74c3c; color: white; } .btn-danger:hover { background: #c0392b; }
+        .toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: var(--header-from); color: white; padding: 10px 8px; text-align: left; position: sticky; top: 0; z-index: 10; white-space: nowrap; border-right: 1px solid rgba(255,255,255,0.1); }
+        td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        tr:hover { background: var(--bg); }
+        tr:nth-child(even) { background: rgba(0,0,0,0.02); }
+        [data-theme="dark"] tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+        .citizen-id { font-family: monospace; background: #fff3cd; padding: 2px 6px; border-radius: 3px; font-size: 11px; }
+        [data-theme="dark"] .citizen-id { background: #3d2a0a; }
+        .grade-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; }
+        .grade-m1 { background: var(--male-bg); color: var(--male); }
+        .grade-m2 { background: #e8f5e9; color: #2e7d32; }
+        .grade-m3 { background: #fff3e0; color: #ef6c00; }
+        .grade-m4 { background: #fce4ec; color: #c2185b; }
+        .grade-m5 { background: #f3e5f5; color: #7b1fa2; }
+        .grade-m6 { background: #e0f2f1; color: #00695c; }
+        .gender-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; }
+        .gender-male { background: var(--male-bg); color: var(--male); }
+        .gender-female { background: var(--female-bg); color: var(--female); }
+        .room { font-weight: 500; color: var(--text); }
+        .name { font-weight: 500; }
+        .loading { text-align: center; padding: 40px; color: var(--muted); }
+        .hidden { display: none !important; }
+        .col-toggle { font-size: 11px; padding: 4px 8px; border: 1px solid var(--border); background: var(--card); border-radius: 3px; cursor: pointer; color: var(--text); }
+        .col-toggle:hover { background: var(--bg); }
+        .col-toggle.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .col-toggles { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; padding: 0 20px 10px; }
+        .col-toggles label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+        footer { padding: 15px 20px; background: var(--bg); border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); text-align: center; }
+        .progress { height: 4px; background: var(--border); border-radius: 2px; margin: 10px 0; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.1s; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s; }
+        .modal.show { opacity: 1; visibility: visible; }
+        .modal-content { background: var(--card); border-radius: 12px; padding: 20px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3); transform: scale(0.9); transition: transform 0.3s; }
+        .modal.show .modal-content { transform: scale(1); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .modal-header h3 { margin: 0; }
+        .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted); }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-size: 13px; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 13px; font-family: inherit; }
+        .form-group textarea { min-height: 80px; resize: vertical; }
+        .form-row { display: flex; gap: 10px; }
+        .form-row .form-group { flex: 1; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+        .checkbox-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; background: var(--bg); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); }
+        .checkbox-group input { accent-color: var(--primary); }
+        .card-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; padding: 20px; }
+        .student-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); position: relative; }
+        .student-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .student-card-grade { font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 10px; }
+        .student-card-photo { width: 80px; height: 80px; border-radius: 8px; background: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 24px; margin: 0 auto 12px; border: 2px dashed var(--border); }
+        .student-card-info { text-align: center; }
+        .student-card-name { font-size: 16px; font-weight: bold; margin: 4px 0; }
+        .student-card-detail { font-size: 12px; color: var(--muted); margin: 2px 0; }
+        .student-card-badges { display: flex; justify-content: center; gap: 6px; margin: 10px 0; flex-wrap: wrap; }
+        .student-card-qr { display: flex; justify-content: center; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+        .qr-code { width: 60px; height: 60px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 8px; color: var(--muted); border: 1px solid var(--border); }
+        .print-btn { position: absolute; top: 10px; right: 10px; background: var(--primary); color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+        .print-btn:hover { background: var(--primary-hover); }
+        .advanced-search-panel { background: var(--bg); border-bottom: 1px solid var(--border); padding: 15px 20px; }
+        .advanced-search-toggle { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--primary); font-weight: 500; }
+        .advanced-search-toggle:hover { text-decoration: underline; }
+        .advanced-search-form { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); }
+        .advanced-search-form.show { display: block; animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .filter-chip { background: var(--primary); color: white; padding: 4px 10px; border-radius: 16px; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; }
+        .filter-chip button { background: none; border: none; color: white; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+        .url-share { background: var(--male-bg); border: 1px solid var(--male); border-radius: 8px; padding: 12px; margin-top: 15px; }
+        .url-share input { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--card); color: var(--text); font-size: 11px; font-family: monospace; }
+        .url-share label { font-size: 12px; font-weight: 500; margin-bottom: 6px; display: block; }
+        .pagination { display: flex; justify-content: center; gap: 6px; padding: 15px 20px; flex-wrap: wrap; }
+        .pagination button { padding: 6px 12px; border: 1px solid var(--border); background: var(--card); border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .pagination button:hover:not(:disabled) { background: var(--primary); color: white; border-color: var(--primary); }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination button.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .pagination-info { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+        .btn-load-all { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .btn-load-all:hover { background: var(--primary-hover); }
+        @media print {
+            .toolbar, .col-toggles, footer, .advanced-search-panel, .print-btn, .theme-toggle, .btn, .pagination, .btn-load-all { display: none !important; }
+            .student-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none; border: 1px solid #ddd; }
+            .container { box-shadow: none; border-radius: 0; max-width: 100%; }
+            body { background: white; padding: 0; }
+            .card-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>📋 ทะเบียนนักเรียน โรงเรียนเบญจมเทพอุทิศ</h1>
+        <p>ข้อมูลจากระบบ reexam — 2,857 ราย | พ.ศ. 2568</p>
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle" title="สลับธีม">🌙 โหมดมืด</button>
+    </header>
+
+    <div class="toolbar">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 ค้นหา: รหัส, ชื่อ, นามสกุล, เลขประจำตัว, ห้อง..." oninput="debounceFilter()">
+            <div class="search-hint">รองรับ regex: <code>/pattern/i</code></div>
+        </div>
+        <div class="stats" id="statsContainer"></div>
+        <div class="toolbar-actions">
+            <button class="btn btn-secondary" onclick="toggleAdvancedSearch()">⚙️ ค้นหาขั้นสูง</button>
+            <button class="btn btn-success" onclick="showCardView()">🃏 มุมมองการ์ด</button>
+            <button class="btn btn-primary" onclick="exportData('csv')">📥 CSV</button>
+            <button class="btn btn-primary" onclick="exportData('json')">📥 JSON</button>
+            <button class="btn btn-secondary" onclick="copyShareUrl()">🔗 แชร์ลิงก์</button>
+        </div>
+    </div>
+
+    <div class="advanced-search-panel">
+        <div class="advanced-search-toggle" onclick="toggleAdvancedSearch()">▼ ค้นหาขั้นสูง (Regex, Multi-condition, Column filters)</div>
+        <div class="advanced-search-form" id="advancedSearchForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>ชั้น (Grade)</label>
+                    <select id="filterGrade" multiple onchange="applyAdvancedFilters()">
+                        <option value="ม.1">ม.1</option><option value="ม.2">ม.2</option><option value="ม.3">ม.3</option>
+                        <option value="ม.4">ม.4</option><option value="ม.5">ม.5</option><option value="ม.6">ม.6</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>ห้อง (Room)</label>
+                    <input type="text" id="filterRoom" placeholder="เช่น 1,2,3 หรือ 1-3" oninput="applyAdvancedFilters()">
+                </div>
+                <div class="form-group">
+                    <label>เพศ (Gender)</label>
+                    <select id="filterGender" multiple onchange="applyAdvancedFilters()">
+                        <option value="ชาย">ชาย</option><option value="หญิง">หญิง</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>ชื่อ/นามสกุล (Regex)</label>
+                <input type="text" id="filterNameRegex" placeholder="เช่น ^ก.*|^ธ.* (ขึ้นต้นด้วย ก หรือ ธ)" oninput="applyAdvancedFilters()">
+            </div>
+            <div class="form-group">
+                <label>เลขประจำตัวประชาชน (Regex)</label>
+                <input type="text" id="filterCitizenRegex" placeholder="เช่น ^17699|^158" oninput="applyAdvancedFilters()">
+            </div>
+            <div class="form-group">
+                <label>คอลัมน์ที่แสดง</label>
+                <div class="checkbox-group" id="columnCheckboxes"></div>
+            </div>
+            <div class="filter-chips" id="activeFilters"></div>
+        </div>
+        <div class="url-share" id="urlShare" style="display: none;">
+            <label>🔗 ลิงก์แชร์ (คัดลอกส่งให้คนอื่น):</label>
+            <input type="text" id="shareUrlInput" readonly onclick="this.select()">
+        </div>
+    </div>
+
+    <div class="col-toggles" id="colToggles"></div>
+
+    <div class="loading" id="loading">กำลังโหลดข้อมูล...</div>
+
+    <table id="dataTable" class="hidden">
+        <thead>
+            <tr id="tableHead"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <div class="pagination" id="pagination" style="display: none;">
+        <div class="pagination-info" id="paginationInfo"></div>
+        <div id="paginationButtons"></div>
+        <button class="btn-load-all" id="btnLoadAll" onclick="loadAllResults()" style="display: none;">โหลดทั้งหมด (สำหรับ Export)</button>
+    </div>
+
+    <div class="card-container" id="cardContainer" style="display: none;"></div>
+
+    <footer>
+        แหล่งข้อมูล: reexam MySQL (students_full_db.tsv) | สร้างโดย olliE | <span id="serverInfo">Netlify + Functions</span>
+    </footer>
+</div>
+
+<!-- Print modal for student card -->
+<div class="modal" id="printModal">
+    <div class="modal-content" id="printModalContent"></div>
+</div>
+
+<script>
+// ===== CONFIG & DATA =====
+const COLUMNS = [
+    { key: 'citizen_id', label: 'เลขประจำตัวประชาชน', width: '140px', class: 'citizen-id', default: true },
+    { key: 'std_title', label: 'คำนำหน้า', width: '60px', default: true },
+    { key: 'gender', label: 'เพศ', width: '60px', default: true },
+    { key: 'std_name', label: 'ชื่อ', width: '120px', class: 'name', default: true },
+    { key: 'std_sur', label: 'นามสกุล', width: '120px', class: 'name', default: true },
+    { key: 'std_class', label: 'ชั้น', width: '60px', class: 'room', default: true },
+    { key: 'std_room', label: 'ห้อง', width: '60px', default: true },
+    { key: 'std_no', label: 'ที่นั่ง', width: '60px', default: true },
+    { key: 'grade', label: 'ระดับชั้น', width: '80px', default: true }
+];
+
+let allRows = [];
+let visibleColumns = COLUMNS.filter(c => c.default).map(c => c.key);
+let viewMode = 'table';
+let currentPage = 1;
+const PAGE_SIZE = 100;
+let totalResults = 0;
+let isLoadingAll = false;
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+    loadTheme();
+    renderColumnToggles();
+    loadInitialData();
+    restoreFiltersFromURL();
+});
+
+// ===== THEME =====
+function loadTheme() {
+    const theme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    updateThemeButton();
+}
+function toggleTheme() {
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    updateThemeButton();
+}
+function updateThemeButton() {
+    const btn = document.getElementById('themeToggle');
+    const theme = document.documentElement.getAttribute('data-theme');
+    btn.textContent = theme === 'dark' ? '☀️ โหมดสว่าง' : '🌙 โหมดมืด';
+}
+
+// ===== API LOADING =====
+async function loadInitialData() {
+    try {
+        const [statsRes, dataRes] = await Promise.all([
+            fetch('/api/stats'),
+            fetch('/api/students?limit=' + PAGE_SIZE)
+        ]);
+        const stats = await statsRes.json();
+        const data = await dataRes.json();
+        totalResults = data.total;
+        allRows = data.students;
+        renderColumnToggles();
+        applyAllFilters();
+        updateStatsFromAPI(stats);
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('dataTable').classList.remove('hidden');
+        renderPagination();
+    } catch (err) {
+        document.getElementById('loading').innerHTML = '❌ โหลดไม่สำเร็จ: ' + err.message + '<br><button onclick="location.reload()">ลองใหม่</button>';
+        document.getElementById('loading').style.color = '#e74c3c';
+    }
+}
+
+async function fetchFilteredData(page = 1, limit = PAGE_SIZE) {
+    const params = buildFilterParams();
+    params.set('limit', limit);
+    params.set('offset', (page - 1) * limit);
+    const res = await fetch('/api/students?' + params.toString());
+    return res.json();
+}
+
+function buildFilterParams() {
+    const params = new URLSearchParams();
+    const q = document.getElementById('searchInput').value.trim();
+    if (q) params.set('q', q);
+    const grade = Array.from(document.getElementById('filterGrade')?.selectedOptions || []).map(o => o.value);
+    if (grade.length) params.set('grade', grade.join(','));
+    const gender = Array.from(document.getElementById('filterGender')?.selectedOptions || []).map(o => o.value);
+    if (gender.length) params.set('gender', gender.join(','));
+    const room = document.getElementById('filterRoom')?.value.trim() || '';
+    if (room) params.set('room', room);
+    const nameRegex = document.getElementById('filterNameRegex')?.value.trim() || '';
+    if (nameRegex) params.set('name', nameRegex);
+    const citizenRegex = document.getElementById('filterCitizenRegex')?.value.trim() || '';
+    if (citizenRegex) params.set('citizen', citizenRegex);
+    return params;
+}
+
+async function loadAllResults() {
+    isLoadingAll = true;
+    document.getElementById('btnLoadAll').textContent = 'กำลังโหลด...';
+    document.getElementById('btnLoadAll').disabled = true;
+    try {
+        const data = await fetchFilteredData(1, 10000);
+        allRows = data.students;
+        totalResults = data.total;
+        isLoadingAll = false;
+        document.getElementById('btnLoadAll').style.display = 'none';
+        applyAllFilters();
+    } catch (err) {
+        alert('โหลดไม่สำเร็จ: ' + err.message);
+        isLoadingAll = false;
+        document.getElementById('btnLoadAll').textContent = 'โหลดทั้งหมด (สำหรับ Export)';
+        document.getElementById('btnLoadAll').disabled = false;
+    }
+}
+
+// ===== COLUMN TOGGLES =====
+function renderColumnToggles() {
+    const container = document.getElementById('colToggles');
+    container.innerHTML = COLUMNS.map(col => `
+        <label><input type="checkbox" data-col="${col.key}" ${visibleColumns.includes(col.key) ? 'checked' : ''} onchange="toggleColumn('${col.key}')"> ${col.label}</label>
+    `).join('');
+    const colContainer = document.getElementById('columnCheckboxes');
+    if (colContainer) colContainer.innerHTML = container.innerHTML;
+}
+function toggleColumn(key) {
+    const idx = visibleColumns.indexOf(key);
+    if (idx >= 0) visibleColumns.splice(idx, 1);
+    else visibleColumns.push(key);
+    renderColumnToggles();
+    renderTable();
+    updateShareUrl();
+}
+
+// ===== FILTERING =====
+let debounceTimer = null;
+function debounceFilter() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        currentPage = 1;
+        loadPage(1);
+    }, 150);
+}
+async function loadPage(page) {
+    currentPage = page;
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('dataTable').classList.add('hidden');
+    try {
+        const data = await fetchFilteredData(page);
+        allRows = data.students;
+        totalResults = data.total;
+        renderTable();
+        renderPagination();
+        updateShareUrl();
+    } catch (err) {
+        alert('โหลดไม่สำเร็จ: ' + err.message);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('dataTable').classList.remove('hidden');
+    }
+}
+function applyAllFilters() {
+    if (viewMode === 'card') {
+        loadAllForCards();
+    } else {
+        loadPage(1);
+    }
+}
+async function loadAllForCards() {
+    document.getElementById('loading').style.display = 'block';
+    try {
+        const data = await fetchFilteredData(1, 10000);
+        allRows = data.students;
+        totalResults = data.total;
+        renderCards(allRows);
+        updateShareUrl();
+    } catch (err) {
+        alert('โหลดไม่สำเร็จ: ' + err.message);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+function applyAdvancedFilters() {
+    renderActiveFilterChips();
+    applyAllFilters();
+}
+
+// ===== RENDER TABLE =====
+function renderTable(rows = allRows) {
+    const head = document.getElementById('tableHead');
+    const body = document.getElementById('tableBody');
+    head.innerHTML = visibleColumns.map(key => {
+        const col = COLUMNS.find(c => c.key === key);
+        return `<th style="width:${col.width}">${col.label}</th>`;
+    }).join('');
+    body.innerHTML = rows.map(row => {
+        return '<tr>' + visibleColumns.map(key => {
+            const col = COLUMNS.find(c => c.key === key);
+            let val = row[key] || '';
+            let cls = col.class || '';
+            if (key === 'grade') val = `<span class="grade-badge grade-m${row.gradeNum || ''}">${val}</span>`;
+            else if (key === 'gender') val = `<span class="gender-badge gender-${val === 'ชาย' ? 'male' : 'female'}">${val}</span>`;
+            else if (key === 'citizen_id' && val) val = `<span class="citizen-id">${val}</span>`;
+            if (key === 'std_name' || key === 'std_sur') cls += ' name';
+            return `<td class="${cls}">${val}</td>`;
+        }).join('') + '</tr>';
+    }).join('');
+}
+function renderPagination() {
+    const container = document.getElementById('pagination');
+    const info = document.getElementById('paginationInfo');
+    const buttons = document.getElementById('paginationButtons');
+    const btnLoadAll = document.getElementById('btnLoadAll');
+    const totalPages = Math.ceil(totalResults / PAGE_SIZE);
+
+    if (totalPages <= 1) {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'flex';
+
+    const start = (currentPage - 1) * PAGE_SIZE + 1;
+    const end = Math.min(currentPage * PAGE_SIZE, totalResults);
+    info.textContent = `แสดง ${start}-${end} จาก ${totalResults} ราย (หน้า ${currentPage}/${totalPages})`;
+
+    let html = '';
+    if (currentPage > 1) {
+        html += `<button onclick="loadPage(${currentPage - 1})">« ก่อนหน้า</button>`;
+    }
+    const maxButtons = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    if (endPage - startPage + 1 < maxButtons) {
+        startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="${i === currentPage ? 'active' : ''}" onclick="loadPage(${i})">${i}</button>`;
+    }
+    if (currentPage < totalPages) {
+        html += `<button onclick="loadPage(${currentPage + 1})">ถัดไป »</button>`;
+    }
+    buttons.innerHTML = html;
+
+    btnLoadAll.style.display = totalResults > PAGE_SIZE ? 'inline-block' : 'none';
+}
+
+// ===== CARD VIEW =====
+function showCardView() {
+    viewMode = 'card';
+    document.getElementById('dataTable').classList.add('hidden');
+    document.getElementById('pagination').style.display = 'none';
+    document.getElementById('cardContainer').style.display = 'grid';
+    loadAllForCards();
+}
+function showTableView() {
+    viewMode = 'table';
+    document.getElementById('cardContainer').style.display = 'none';
+    document.getElementById('pagination').style.display = 'flex';
+    document.getElementById('dataTable').classList.remove('hidden');
+}
+function renderCards(rows) {
+    const container = document.getElementById('cardContainer');
+    container.innerHTML = rows.map(row => `
+        <div class="student-card" onclick="printCard('${row.citizen_id}')">
+            <button class="print-btn" onclick="event.stopPropagation(); printCard('${row.citizen_id}')">🖨️ พิมพ์</button>
+            <div class="student-card-header">
+                <span class="student-card-grade grade-badge grade-m${row.gradeNum}">${row.grade}</span>
+                <span class="gender-badge gender-${row.gender === 'ชาย' ? 'male' : 'female'}">${row.gender}</span>
+            </div>
+            <div class="student-card-photo">📷</div>
+            <div class="student-card-info">
+                <div class="student-card-name">${row.std_title}${row.std_name} ${row.std_sur}</div>
+                <div class="student-card-detail">เลขประจำตัว: <strong>${row.citizen_id}</strong></div>
+                <div class="student-card-detail">ชั้น ${row.std_class} ห้อง ${row.std_room} ที่นั่ง ${row.std_no}</div>
+            </div>
+            <div class="student-card-badges">
+                <span class="grade-badge grade-m${row.gradeNum}">${row.grade}</span>
+                <span class="gender-badge gender-${row.gender === 'ชาย' ? 'male' : 'female'}">${row.gender}</span>
+            </div>
+            <div class="student-card-qr">
+                <div class="qr-code" title="QR: ${row.citizen_id}">QR<br>${row.citizen_id.slice(-6)}</div>
+                <div class="qr-code" title="Barcode: ${row.citizen_id}">|||||<br>${row.citizen_id.slice(-6)}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ===== PRINT CARD =====
+function printCard(citizenId) {
+    const row = allRows.find(r => r.citizen_id === citizenId);
+    if (!row) return;
+    const content = `
+        <div class="student-card" style="width: 300px; margin: 0 auto;">
+            <div class="student-card-header">
+                <span class="student-card-grade grade-badge grade-m${row.gradeNum}">${row.grade}</span>
+                <span class="gender-badge gender-${row.gender === 'ชาย' ? 'male' : 'female'}">${row.gender}</span>
+            </div>
+            <div class="student-card-photo">📷</div>
+            <div class="student-card-info">
+                <div class="student-card-name">${row.std_title}${row.std_name} ${row.std_sur}</div>
+                <div class="student-card-detail">เลขประจำตัว: <strong>${row.citizen_id}</strong></div>
+                <div class="student-card-detail">ชั้น ${row.std_class} ห้อง ${row.std_room} ที่นั่ง ${row.std_no}</div>
+            </div>
+            <div class="student-card-badges">
+                <span class="grade-badge grade-m${row.gradeNum}">${row.grade}</span>
+                <span class="gender-badge gender-${row.gender === 'ชาย' ? 'male' : 'female'}">${row.gender}</span
+            </div>
+            <div class="student-card-qr">
+                <div class="qr-code">QR<br>${row.citizen_id.slice(-6)}</div>
+                <div class="qr-code">|||||<br>${row.citizen_id.slice(-6)}</div>
+            </div>
+        </div>
+    `;
+    const modal = document.getElementById('printModal');
+    const modalContent = document.getElementById('printModalContent');
+    modalContent.innerHTML = content;
+    modal.classList.add('show');
+    setTimeout(() => window.print(), 100);
+    modal.onclick = e => { if (e.target === modal) modal.classList.remove('show'); };
+}
+
+// ===== STATS =====
+function updateStatsFromAPI(stats) {
+    const byGrade = stats.byGrade || {};
+    const byGender = stats.byGender || { ชาย: 0, หญิง: 0 };
+    let html = `
+        <span class="stat">ทั้งหมด: <strong>${stats.total}</strong> ราย</span>
+        <span class="stat">แสดง: <strong>${allRows.length}</strong> ราย</span>
+    `;
+    for (let i = 1; i <= 6; i++) {
+        html += `<span class="stat grade">ม.${i}: <strong>${byGrade['ม.'+i] || 0}</strong></span>`;
+    }
+    html += `<span class="stat male">♂ ชาย: <strong>${byGender['ชาย'] || 0}</strong></span>`;
+    html += `<span class="stat female">♀ หญิง: <strong>${byGender['หญิง'] || 0}</strong></span>`;
+    document.getElementById('statsContainer').innerHTML = html;
+}
+
+// ===== EXPORT =====
+async function exportData(format) {
+    if (!isLoadingAll && totalResults > allRows.length) {
+        if (!confirm(`ข้อมูลทั้งหมด ${totalResults} ราย แต่โหลดมาแค่ ${allRows.length} ราย ต้องการโหลดทั้งหมดก่อน export?`)) return;
+        await loadAllResults();
+        while (isLoadingAll) await new Promise(r => setTimeout(r, 100));
+    }
+    const rows = allRows;
+    if (!rows.length) { alert('ไม่มีข้อมูลให้ export'); return; }
+    const exportCols = visibleColumns.length ? visibleColumns : COLUMNS.map(c => c.key);
+    if (format === 'csv') {
+        const header = exportCols.map(key => COLUMNS.find(c => c.key === key)?.label || key).join(',');
+        const data = rows.map(row => exportCols.map(key => {
+            let val = row[key] || '';
+            val = String(val).replace(/"/g, '""');
+            if (val.includes(',') || val.includes('"') || val.includes('\n')) val = '"' + val + '"';
+            return val;
+        }).join(',')).join('\n');
+        downloadBlob(header + '\n' + data, 'students_export.csv', 'text/csv;charset=utf-8');
+    } else {
+        const data = rows.map(row => {
+            const obj = {};
+            exportCols.forEach(key => obj[key] = row[key]);
+            return obj;
+        });
+        downloadBlob(JSON.stringify(data, null, 2), 'students_export.json', 'application/json;charset=utf-8');
+    }
+}
+function downloadBlob(content, filename, mime) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ===== SHARE URL =====
+function updateShareUrl() {
+    const params = buildFilterParams();
+    const cols = visibleColumns.join(',');
+    if (cols !== COLUMNS.filter(c => c.default).map(c => c.key).join(',')) params.set('cols', cols);
+    const shareUrl = `${location.origin}${location.pathname}?${params.toString()}`;
+    document.getElementById('shareUrlInput').value = shareUrl;
+    const shareDiv = document.getElementById('urlShare');
+    if (params.toString()) shareDiv.style.display = 'block';
+    else shareDiv.style.display = 'none';
+}
+function copyShareUrl() {
+    const input = document.getElementById('shareUrlInput');
+    if (!input.value) { updateShareUrl(); }
+    navigator.clipboard.writeText(input.value).then(() => {
+        const btn = event.target;
+        const orig = btn.textContent;
+        btn.textContent = '✅ คัดลอกแล้ว!';
+        setTimeout(() => btn.textContent = orig, 2000);
+    });
+}
+function restoreFiltersFromURL() {
+    const params = new URLSearchParams(location.search);
+    if (params.has('q')) document.getElementById('searchInput').value = params.get('q');
+    if (params.has('grade')) {
+        const grades = params.get('grade').split(',');
+        const select = document.getElementById('filterGrade');
+        Array.from(select.options).forEach(o => { if (grades.includes(o.value)) o.selected = true; });
+    }
+    if (params.has('gender')) {
+        const genders = params.get('gender').split(',');
+        const select = document.getElementById('filterGender');
+        Array.from(select.options).forEach(o => { if (genders.includes(o.value)) o.selected = true; });
+    }
+    if (params.has('room')) document.getElementById('filterRoom').value = params.get('room');
+    if (params.has('name')) document.getElementById('filterNameRegex').value = params.get('name');
+    if (params.has('citizen')) document.getElementById('filterCitizenRegex').value = params.get('citizen');
+    if (params.has('cols')) {
+        visibleColumns = params.get('cols').split(',');
+        renderColumnToggles();
+    }
+    if (params.has('grade') || params.has('gender') || params.has('room') || params.has('name') || params.has('citizen')) {
+        document.getElementById('advancedSearchForm').classList.add('show');
+    }
+}
+
+// ===== ACTIVE FILTER CHIPS =====
+function renderActiveFilterChips() {
+    const container = document.getElementById('activeFilters');
+    const chips = [];
+    const gradeFilter = Array.from(document.getElementById('filterGrade')?.selectedOptions || []).map(o => o.value);
+    const genderFilter = Array.from(document.getElementById('filterGender')?.selectedOptions || []).map(o => o.value);
+    const roomFilter = document.getElementById('filterRoom')?.value.trim() || '';
+    const nameRegex = document.getElementById('filterNameRegex')?.value.trim() || '';
+    const citizenRegex = document.getElementById('filterCitizenRegex')?.value.trim() || '';
+    gradeFilter.forEach(g => chips.push(`ชั้น: ${g}`));
+    genderFilter.forEach(g => chips.push(`เพศ: ${g}`));
+    if (roomFilter) chips.push(`ห้อง: ${roomFilter}`);
+    if (nameRegex) chips.push(`ชื่อ: /${nameRegex}/`);
+    if (citizenRegex) chips.push(`บัตร: /${citizenRegex}/`);
+    container.innerHTML = chips.map(c => `<span class="filter-chip">${c} <button onclick="removeFilterChip('${c}')">×</button></span>`).join('');
+}
+function removeFilterChip(label) {
+    if (label.startsWith('ชั้น:')) { document.getElementById('filterGrade').value = []; }
+    else if (label.startsWith('เพศ:')) { document.getElementById('filterGender').value = []; }
+    else if (label.startsWith('ห้อง:')) { document.getElementById('filterRoom').value = ''; }
+    else if (label.startsWith('ชื่อ:')) { document.getElementById('filterNameRegex').value = ''; }
+    else if (label.startsWith('บัตร:')) { document.getElementById('filterCitizenRegex').value = ''; }
+    applyAdvancedFilters();
+}
+function toggleAdvancedSearch() {
+    const form = document.getElementById('advancedSearchForm');
+    form.classList.toggle('show');
+    form.style.display = form.classList.contains('show') ? 'block' : 'none';
+}
+</script>
+</body>
+</html>

@@ -46,3 +46,7 @@ students.forEach(r => {
 });
 fs.writeFileSync(path.join(__dirname, 'public', 'stats.json'), JSON.stringify({ total: students.length, byGrade, byGender, byRoom }));
 console.log('Generated stats.json');
+
+// Copy index.html to public
+fs.copyFileSync(path.join(__dirname, 'index.html'), path.join(__dirname, 'public', 'index.html'));
+console.log('Copied index.html to public/');
