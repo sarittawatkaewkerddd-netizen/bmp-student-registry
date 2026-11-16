@@ -1,0 +1,19 @@
+{
+  "name": "bmp-student-registry",
+  "version": "1.0.0",
+  "description": "BMP Student Registry - Static site + Netlify Functions",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "npx netlify dev",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
