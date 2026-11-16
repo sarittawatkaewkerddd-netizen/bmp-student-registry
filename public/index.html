@@ -273,17 +273,17 @@ function updateThemeButton() {
     btn.textContent = theme === 'dark' ? '☀️ โหมดสว่าง' : '🌙 โหมดมืด';
 }
 
-// ===== API LOADING =====
+// ===== API LOADING (Static JSON + Client-side filter) =====
 async function loadInitialData() {
     try {
         const [statsRes, dataRes] = await Promise.all([
-            fetch('/api/stats'),
-            fetch('/api/students?limit=' + PAGE_SIZE)
+            fetch('/stats.json'),
+            fetch('/students.json')
         ]);
         const stats = await statsRes.json();
-        const data = await dataRes.json();
-        totalResults = data.total;
-        allRows = data.students;
+        const students = await dataRes.json();
+        totalResults = stats.total;
+        allRows = students;
         renderColumnToggles();
         applyAllFilters();
         updateStatsFromAPI(stats);
@@ -296,12 +296,81 @@ async function loadInitialData() {
     }
 }
 
-async function fetchFilteredData(page = 1, limit = PAGE_SIZE) {
-    const params = buildFilterParams();
-    params.set('limit', limit);
-    params.set('offset', (page - 1) * limit);
-    const res = await fetch('/api/students?' + params.toString());
-    return res.json();
+// Client-side filtering (replaces API call)
+function fetchFilteredData(page = 1, limit = PAGE_SIZE) {
+    return new Promise((resolve) => {
+        const params = buildFilterParams();
+        // Apply filters client-side
+        let filtered = allRows;
+
+        const q = document.getElementById('searchInput').value.trim();
+        if (q) {
+            const isRegex = q.startsWith('/') && q.lastIndexOf('/') > 0;
+            if (isRegex) {
+                const lastSlash = q.lastIndexOf('/');
+                const pattern = q.slice(1, lastSlash);
+                const flags = q.slice(lastSlash + 1);
+                try {
+                    const re = new RegExp(pattern, flags);
+                    filtered = filtered.filter(r => Object.values(r).some(v => re.test(String(v))));
+                } catch (e) {
+                    filtered = [];
+                }
+            } else {
+                const lowerQ = q.toLowerCase();
+                filtered = filtered.filter(r =>
+                    Object.values(r).some(v => String(v).toLowerCase().includes(lowerQ))
+                );
+            }
+        }
+
+        const grade = Array.from(document.getElementById('filterGrade')?.selectedOptions || []).map(o => o.value);
+        if (grade.length) filtered = filtered.filter(r => grade.includes(r.grade));
+
+        const gender = Array.from(document.getElementById('filterGender')?.selectedOptions || []).map(o => o.value);
+        if (gender.length) filtered = filtered.filter(r => gender.includes(r.gender));
+
+        const room = document.getElementById('filterRoom')?.value.trim() || '';
+        if (room) {
+            const rooms = [];
+            room.split(',').forEach(part => {
+                part = part.trim();
+                if (part.includes('-')) {
+                    const [start, end] = part.split('-').map(Number);
+                    for (let i = start; i <= end; i++) rooms.push(String(i));
+                } else {
+                    rooms.push(part);
+                }
+            });
+            filtered = filtered.filter(r => rooms.includes(r.std_room));
+        }
+
+        const nameRegex = document.getElementById('filterNameRegex')?.value.trim() || '';
+        if (nameRegex) {
+            try {
+                const re = new RegExp(nameRegex, 'i');
+                filtered = filtered.filter(r => re.test(r.std_name + ' ' + r.std_sur));
+            } catch (e) {}
+        }
+
+        const citizenRegex = document.getElementById('filterCitizenRegex')?.value.trim() || '';
+        if (citizenRegex) {
+            try {
+                const re = new RegExp(citizenRegex);
+                filtered = filtered.filter(r => re.test(r.citizen_id));
+            } catch (e) {}
+        }
+
+        const total = filtered.length;
+        const limitNum = parseInt(params.get('limit')) || limit;
+        const offset = parseInt(params.get('offset')) || (page - 1) * limitNum;
+        let paged = filtered;
+        if (limitNum > 0) {
+            paged = filtered.slice(offset, offset + limitNum);
+        }
+
+        resolve({ students: paged, total, limit: limitNum, offset });
+    });
 }
 
 function buildFilterParams() {
