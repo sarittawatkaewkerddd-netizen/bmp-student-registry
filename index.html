@@ -239,7 +239,8 @@ const COLUMNS = [
     { key: 'grade', label: 'ระดับชั้น', width: '80px', default: true }
 ];
 
-let allRows = [];
+let fullDataset = [];      // ข้อมูลทั้งหมด 2857 records (ไม่เปลี่ยนแปลง)
+let displayRows = [];      // ข้อมูลที่ filter แล้ว + paginate (สำหรับแสดงผล)
 let visibleColumns = COLUMNS.filter(c => c.default).map(c => c.key);
 let viewMode = 'table';
 let currentPage = 1;
@@ -283,7 +284,7 @@ async function loadInitialData() {
         const stats = await statsRes.json();
         const students = await dataRes.json();
         totalResults = stats.total;
-        allRows = students;
+        fullDataset = students;
         renderColumnToggles();
         applyAllFilters();
         updateStatsFromAPI(stats);
@@ -301,7 +302,7 @@ function fetchFilteredData(page = 1, limit = PAGE_SIZE) {
     return new Promise((resolve) => {
         const params = buildFilterParams();
         // Apply filters client-side
-        let filtered = allRows;
+        let filtered = fullDataset;
 
         const q = document.getElementById('searchInput').value.trim();
         if (q) {
@@ -442,7 +443,7 @@ async function loadPage(page) {
     document.getElementById('dataTable').classList.add('hidden');
     try {
         const data = await fetchFilteredData(page);
-        allRows = data.students;
+        displayRows = data.students;
         totalResults = data.total;
         renderTable();
         renderPagination();
@@ -465,9 +466,9 @@ async function loadAllForCards() {
     document.getElementById('loading').style.display = 'block';
     try {
         const data = await fetchFilteredData(1, 10000);
-        allRows = data.students;
+        displayRows = data.students;
         totalResults = data.total;
-        renderCards(allRows);
+        renderCards(displayRows);
         updateShareUrl();
     } catch (err) {
         alert('โหลดไม่สำเร็จ: ' + err.message);
@@ -481,7 +482,7 @@ function applyAdvancedFilters() {
 }
 
 // ===== RENDER TABLE =====
-function renderTable(rows = allRows) {
+function renderTable(rows = displayRows) {
     const head = document.getElementById('tableHead');
     const body = document.getElementById('tableBody');
     head.innerHTML = visibleColumns.map(key => {
@@ -582,7 +583,7 @@ function renderCards(rows) {
 
 // ===== PRINT CARD =====
 function printCard(citizenId) {
-    const row = allRows.find(r => r.citizen_id === citizenId);
+    const row = fullDataset.find(r => r.citizen_id === citizenId);
     if (!row) return;
     const content = `
         <div class="student-card" style="width: 300px; margin: 0 auto;">
@@ -632,12 +633,12 @@ function updateStatsFromAPI(stats) {
 
 // ===== EXPORT =====
 async function exportData(format) {
-    if (!isLoadingAll && totalResults > allRows.length) {
+    if (!isLoadingAll && totalResults > fullDataset.length) {
         if (!confirm(`ข้อมูลทั้งหมด ${totalResults} ราย แต่โหลดมาแค่ ${allRows.length} ราย ต้องการโหลดทั้งหมดก่อน export?`)) return;
         await loadAllResults();
         while (isLoadingAll) await new Promise(r => setTimeout(r, 100));
     }
-    const rows = allRows;
+    const rows = isLoadingAll ? displayRows : fullDataset;
     if (!rows.length) { alert('ไม่มีข้อมูลให้ export'); return; }
     const exportCols = visibleColumns.length ? visibleColumns : COLUMNS.map(c => c.key);
     if (format === 'csv') {
