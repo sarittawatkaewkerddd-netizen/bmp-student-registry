@@ -89,19 +89,6 @@
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
         .checkbox-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; background: var(--bg); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); }
         .checkbox-group input { accent-color: var(--primary); }
-        .card-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; padding: 20px; }
-        .student-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); position: relative; }
-        .student-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-        .student-card-grade { font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 10px; }
-        .student-card-photo { width: 80px; height: 80px; border-radius: 8px; background: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 24px; margin: 0 auto 12px; border: 2px dashed var(--border); }
-        .student-card-info { text-align: center; }
-        .student-card-name { font-size: 16px; font-weight: bold; margin: 4px 0; }
-        .student-card-detail { font-size: 12px; color: var(--muted); margin: 2px 0; }
-        .student-card-badges { display: flex; justify-content: center; gap: 6px; margin: 10px 0; flex-wrap: wrap; }
-        .student-card-qr { display: flex; justify-content: center; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
-        .qr-code { width: 60px; height: 60px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 8px; color: var(--muted); border: 1px solid var(--border); }
-        .print-btn { position: absolute; top: 10px; right: 10px; background: var(--primary); color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; }
-        .print-btn:hover { background: var(--primary-hover); }
         .advanced-search-panel { background: var(--bg); border-bottom: 1px solid var(--border); padding: 15px 20px; }
         .advanced-search-toggle { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--primary); font-weight: 500; }
         .advanced-search-toggle:hover { text-decoration: underline; }
@@ -123,11 +110,9 @@
         .btn-load-all { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
         .btn-load-all:hover { background: var(--primary-hover); }
         @media print {
-            .toolbar, .col-toggles, footer, .advanced-search-panel, .print-btn, .theme-toggle, .btn, .pagination, .btn-load-all { display: none !important; }
-            .student-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none; border: 1px solid #ddd; }
+            .toolbar, .col-toggles, footer, .advanced-search-panel, .theme-toggle, .btn, .pagination, .btn-load-all { display: none !important; }
             .container { box-shadow: none; border-radius: 0; max-width: 100%; }
             body { background: white; padding: 0; }
-            .card-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         }
 
         /* Mobile Responsive */
@@ -170,16 +155,7 @@
             .pagination-info { font-size: 12px; gap: 6px; flex-wrap: wrap; }
             .btn-load-all { width: 100%; padding: 10px; font-size: 13px; }
 
-            /* Card view - default on mobile */
-            .card-container { grid-template-columns: 1fr; padding: 10px; gap: 10px; }
-            .student-card { padding: 12px; }
-            .student-card-photo { width: 60px; height: 60px; font-size: 20px; }
-            .student-card-name { font-size: 15px; }
-            .student-card-detail { font-size: 11px; }
-            .qr-code { width: 50px; height: 50px; font-size: 7px; }
-
             .modal-content { width: 95%; padding: 15px; margin: 10px; }
-            .print-btn { padding: 4px 8px; font-size: 10px; }
 
             footer { padding: 10px; font-size: 11px; }
         }
@@ -204,6 +180,19 @@
     </style>
 </head>
 <body>
+<div class="modal" id="passwordModal" style="display: flex;">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+        <h3 style="margin-top: 0;">🔐 เข้าสู่ระบบ</h3>
+        <p style="color: var(--muted); margin-bottom: 20px;">กรุณาใส่รหัสผ่านเพื่อเข้าถึงข้อมูลนักเรียน</p>
+        <div class="form-group" style="text-align: left;">
+            <label>รหัสผ่าน</label>
+            <input type="password" id="passwordInput" placeholder="ใส่รหัสผ่าน" onkeydown="checkPasswordEnter(event)" style="width: 100%; padding: 12px; font-size: 16px;">
+        </div>
+        <button class="btn btn-primary" onclick="verifyPassword()" style="width: 100%; padding: 12px; font-size: 15px;">เข้าสู่ระบบ</button>
+        <p id="passwordError" style="color: #e74c3c; margin-top: 10px; display: none; font-size: 13px;">รหัสผ่านไม่ถูกต้อง</p>
+    </div>
+</div>
+
 <div class="container">
     <header>
         <h1>📋 ทะเบียนนักเรียน โรงเรียนเบญจมเทพอุทิศ</h1>
@@ -219,7 +208,6 @@
         <div class="stats" id="statsContainer"></div>
         <div class="toolbar-actions">
             <button class="btn btn-secondary" onclick="toggleAdvancedSearch()">⚙️ ค้นหาขั้นสูง</button>
-            <button class="btn btn-success" onclick="showCardView()">🃏 มุมมองการ์ด</button>
             <button class="btn btn-primary" onclick="exportData('csv')">📥 CSV</button>
             <button class="btn btn-primary" onclick="exportData('json')">📥 JSON</button>
             <button class="btn btn-secondary" onclick="copyShareUrl()">🔗 แชร์ลิงก์</button>
@@ -287,17 +275,11 @@
         <button class="btn-load-all" id="btnLoadAll" onclick="loadAllResults()" style="display: none;">โหลดทั้งหมด (สำหรับ Export)</button>
     </div>
 
-    <div class="card-container" id="cardContainer" style="display: none;"></div>
-
     <footer>
         แหล่งข้อมูล: reexam MySQL (students_full_db.tsv) | สร้างโดย olliE | <span id="serverInfo">Netlify + Functions</span>
     </footer>
 </div>
 
-<!-- Print modal for student card -->
-<div class="modal" id="printModal">
-    <div class="modal-content" id="printModalContent"></div>
-</div>
 
 <script>
 // ===== CONFIG & DATA =====
@@ -316,34 +298,52 @@ const COLUMNS = [
 let fullDataset = [];      // ข้อมูลทั้งหมด 2857 records (ไม่เปลี่ยนแปลง)
 let displayRows = [];      // ข้อมูลที่ filter แล้ว + paginate (สำหรับแสดงผล)
 let visibleColumns = COLUMNS.filter(c => c.default).map(c => c.key);
-let viewMode = 'table';
 let currentPage = 1;
 const PAGE_SIZE = 100;
 let totalResults = 0;
 let isLoadingAll = false;
+const PASSWORD = '060355tt';
 
-// ===== INIT =====
-document.addEventListener('DOMContentLoaded', () => {
+// ===== PASSWORD PROTECTION =====
+function checkPassword() {
+    const saved = sessionStorage.getItem('bmp_auth');
+    if (saved === PASSWORD) {
+        document.getElementById('passwordModal').style.display = 'none';
+        initApp();
+        return true;
+    }
+    return false;
+}
+
+function verifyPassword() {
+    const input = document.getElementById('passwordInput').value;
+    const errorEl = document.getElementById('passwordError');
+    if (input === PASSWORD) {
+        sessionStorage.setItem('bmp_auth', PASSWORD);
+        document.getElementById('passwordModal').style.display = 'none';
+        initApp();
+    } else {
+        errorEl.style.display = 'block';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+    }
+}
+
+function checkPasswordEnter(event) {
+    if (event.key === 'Enter') verifyPassword();
+}
+
+function initApp() {
     loadTheme();
     renderColumnToggles();
     loadInitialData();
     restoreFiltersFromURL();
-    // Auto card view on mobile
-    if (window.innerWidth <= 768) {
-        viewMode = 'card';
-        document.getElementById('dataTable').classList.add('hidden');
-        document.getElementById('cardContainer').style.display = 'grid';
-        document.getElementById('pagination').style.display = 'none';
-    }
-    window.addEventListener('resize', handleResize);
-});
-function handleResize() {
-    if (window.innerWidth <= 768 && viewMode === 'table') {
-        showCardView();
-    } else if (window.innerWidth > 768 && viewMode === 'card') {
-        showTableView();
-    }
 }
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+    checkPassword();
+});
 
 // ===== THEME =====
 function loadTheme() {
@@ -545,25 +545,7 @@ async function loadPage(page) {
     }
 }
 function applyAllFilters() {
-    if (viewMode === 'card') {
-        loadAllForCards();
-    } else {
-        loadPage(1);
-    }
-}
-async function loadAllForCards() {
-    document.getElementById('loading').style.display = 'block';
-    try {
-        const data = await fetchFilteredData(1, 10000);
-        displayRows = data.students;
-        totalResults = data.total;
-        renderCards(displayRows);
-        updateShareUrl();
-    } catch (err) {
-        alert('โหลดไม่สำเร็จ: ' + err.message);
-    } finally {
-        document.getElementById('loading').style.display = 'none';
-    }
+    loadPage(1);
 }
 function applyAdvancedFilters() {
     renderActiveFilterChips();
@@ -627,81 +609,6 @@ function renderPagination() {
     buttons.innerHTML = html;
 
     btnLoadAll.style.display = totalResults > PAGE_SIZE ? 'inline-block' : 'none';
-}
-
-// ===== CARD VIEW =====
-function showCardView() {
-    viewMode = 'card';
-    document.getElementById('dataTable').classList.add('hidden');
-    document.getElementById('pagination').style.display = 'none';
-    document.getElementById('cardContainer').style.display = 'grid';
-    loadAllForCards();
-}
-function showTableView() {
-    viewMode = 'table';
-    document.getElementById('cardContainer').style.display = 'none';
-    document.getElementById('pagination').style.display = 'flex';
-    document.getElementById('dataTable').classList.remove('hidden');
-}
-function renderCards(rows) {
-    const container = document.getElementById('cardContainer');
-    container.innerHTML = rows.map(row => `
-        <div class="student-card" onclick="printCard('${row.citizen_id}')">
-            <button class="print-btn" onclick="event.stopPropagation(); printCard('${row.citizen_id}')">🖨️ พิมพ์</button>
-            <div class="student-card-header">
-                <span class="student-card-grade grade-badge grade-m${row.gradeNum}">${row.grade}</span>
-                <span class="gender-badge gender-${row.gender === 'ชาย' ? 'male' : 'female'}">${row.gender}</span>
-            </div>
-            <div class="student-card-photo">📷</div>
-            <div class="student-card-info">
-                <div class="student-card-name">${row.std_title}${row.std_name} ${row.std_sur}</div>
-                <div class="student-card-detail">เลขประจำตัว: <strong>${row.citizen_id}</strong></div>
-                <div class="student-card-detail">ชั้น ${row.std_class} ห้อง ${row.std_room} ที่นั่ง ${row.std_no}</div>
-            </div>
-            <div class="student-card-badges">
-                <span class="grade-badge grade-m${row.gradeNum}">${row.grade}</span>
-                <span class="gender-badge gender-${row.gender === 'ชาย' ? 'male' : 'female'}">${row.gender}</span>
-            </div>
-            <div class="student-card-qr">
-                <div class="qr-code" title="QR: ${row.citizen_id}">QR<br>${row.citizen_id.slice(-6)}</div>
-                <div class="qr-code" title="Barcode: ${row.citizen_id}">|||||<br>${row.citizen_id.slice(-6)}</div>
-            </div>
-        </div>
-    `).join('');
-}
-
-// ===== PRINT CARD =====
-function printCard(citizenId) {
-    const row = fullDataset.find(r => r.citizen_id === citizenId);
-    if (!row) return;
-    const content = `
-        <div class="student-card" style="width: 300px; margin: 0 auto;">
-            <div class="student-card-header">
-                <span class="student-card-grade grade-badge grade-m${row.gradeNum}">${row.grade}</span>
-                <span class="gender-badge gender-${row.gender === 'ชาย' ? 'male' : 'female'}">${row.gender}</span>
-            </div>
-            <div class="student-card-photo">📷</div>
-            <div class="student-card-info">
-                <div class="student-card-name">${row.std_title}${row.std_name} ${row.std_sur}</div>
-                <div class="student-card-detail">เลขประจำตัว: <strong>${row.citizen_id}</strong></div>
-                <div class="student-card-detail">ชั้น ${row.std_class} ห้อง ${row.std_room} ที่นั่ง ${row.std_no}</div>
-            </div>
-            <div class="student-card-badges">
-                <span class="grade-badge grade-m${row.gradeNum}">${row.grade}</span>
-                <span class="gender-badge gender-${row.gender === 'ชาย' ? 'male' : 'female'}">${row.gender}</span
-            </div>
-            <div class="student-card-qr">
-                <div class="qr-code">QR<br>${row.citizen_id.slice(-6)}</div>
-                <div class="qr-code">|||||<br>${row.citizen_id.slice(-6)}</div>
-            </div>
-        </div>
-    `;
-    const modal = document.getElementById('printModal');
-    const modalContent = document.getElementById('printModalContent');
-    modalContent.innerHTML = content;
-    modal.classList.add('show');
-    setTimeout(() => window.print(), 100);
-    modal.onclick = e => { if (e.target === modal) modal.classList.remove('show'); };
 }
 
 // ===== STATS =====
